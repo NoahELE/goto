@@ -1,2 +1,5 @@
 # dev db
 db.sqlite
+
+# binary
+goto.exe
