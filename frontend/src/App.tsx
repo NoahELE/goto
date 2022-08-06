@@ -72,9 +72,7 @@ export default function App() {
                       value: 128,
                       message: 'url is too long',
                     },
-                    validate: {
-                      isValidUrl,
-                    },
+                    validate: isValidUrl,
                   })}
                 />
               </HStack>
@@ -100,8 +98,8 @@ export default function App() {
 
 function isValidUrl(s: string) {
   try {
-    const url = new URL(s)
-    console.log(url)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const _ = new URL(s)
   } catch (err) {
     return 'not a valid url'
   }

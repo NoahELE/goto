@@ -1,0 +1,25 @@
+version: 3
+
+tasks:
+  default:
+    cmds:
+      - task: build
+      - task: dev
+
+  dev:
+    cmds:
+      - ./goto.exe
+
+  build:
+    deps:
+      - build-frontend
+      - build-backend
+
+  build-frontend:
+    dir: frontend
+    cmds:
+      - npm run build
+
+  build-backend:
+    cmds:
+      - go build -tags=jsoniter

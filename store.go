@@ -16,7 +16,8 @@ type KeyUrlPair struct {
 }
 
 type UrlStore struct {
-	db *gorm.DB
+	db    *gorm.DB
+	cache chan *KeyUrlPair
 }
 
 const MAX_RETRY = 10
@@ -32,16 +33,11 @@ func NewUrlStore() *UrlStore {
 	// fit db to the model
 	db.AutoMigrate(&KeyUrlPair{})
 
-	return &UrlStore{db}
-}
-
-func (s *UrlStore) set(key, url string) error {
-	// attempt to insert a record, if failed return the error
-	res := s.db.Create(&KeyUrlPair{Key: key, Url: url})
-	if res.Error != nil {
-		return res.Error
-	}
-	return nil
+	// init cache
+	cache := make(chan *KeyUrlPair)
+	store := &UrlStore{db, cache}
+	go store.saveLoop()
+	return store
 }
 
 func (s *UrlStore) Get(key string) (string, error) {
@@ -57,30 +53,28 @@ func (s *UrlStore) Get(key string) (string, error) {
 }
 
 func (s *UrlStore) Put(url string) (string, error) {
-	// select a record with url
+	// check if the url is already in db
 	var ku KeyUrlPair
 	res := s.db.First(&ku, "url = ?", url)
 
 	// match res.Error
 	if errors.Is(res.Error, gorm.ErrRecordNotFound) {
-		// if not found, gen a key and create a record
+		// if not found, gen a key and push it to cache
 		l := 5
 		retry := 0
 		for {
-			// gen a nanoid as the key
+			// generate a nanoid as the key
 			key, err := gonanoid.New(l)
 			if err != nil {
 				return "", err
 			}
 
-			// match the set result
-			if err := s.set(key, url); err != nil {
-				// if unsuccessful, increase the length of nanoid by 1
+			// test if the key already exists
+			if _, err := s.Get(key); err != nil {
+				// increase length of generated nanoid
 				l++
-
-				// increase counter by 1
+				// return error if exceeds max retry
 				retry++
-				// return the error when reaching max retry
 				if retry >= MAX_RETRY {
 					return "", fmt.Errorf(
 						"exceeds MAX_RETRY (%d): db error is %w",
@@ -89,7 +83,7 @@ func (s *UrlStore) Put(url string) (string, error) {
 					)
 				}
 			} else {
-				// if the set operation is successful, return key
+				s.cache <- &KeyUrlPair{Key: key, Url: url}
 				return key, nil
 			}
 		}
@@ -97,7 +91,12 @@ func (s *UrlStore) Put(url string) (string, error) {
 		// if found, return that record
 		return ku.Key, nil
 	} else {
-		// return the error if not nil
+		// return other errors
 		return "", res.Error
 	}
+}
+
+func (s *UrlStore) saveLoop() {
+	ku := <-s.cache
+	s.db.Create(ku)
 }
