@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	"fmt"
+	"log"
 
 	gonanoid "github.com/matoous/go-nanoid/v2"
 	"gorm.io/driver/sqlite"
@@ -26,12 +27,14 @@ func NewUrlStore() *UrlStore {
 	// new sqlite connection
 	db, err := gorm.Open(sqlite.Open("db.sqlite"), &gorm.Config{})
 	if err != nil {
-		// panic when failed to connect to db
-		panic(err)
+		log.Fatal(err)
 	}
 
 	// fit db to the model
-	db.AutoMigrate(&KeyUrlPair{})
+	err = db.AutoMigrate(&KeyUrlPair{})
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// init cache
 	cache := make(chan *KeyUrlPair)

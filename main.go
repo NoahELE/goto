@@ -34,7 +34,10 @@ func redirect(c *gin.Context) {
 	key := c.Params.ByName("key")
 	url, err := store.Get(key)
 	if err != nil {
-		c.Error(err)
+		err := c.Error(err)
+		if err != nil {
+			return
+		}
 	}
 	c.Redirect(http.StatusFound, url)
 }
@@ -43,10 +46,16 @@ func add(c *gin.Context) {
 	var urlStruct struct {
 		Url string `json:"url" binding:"required"`
 	}
-	c.BindJSON(&urlStruct)
+	err := c.BindJSON(&urlStruct)
+	if err != nil {
+		log.Fatal(err)
+	}
 	key, err := store.Put(urlStruct.Url)
 	if err != nil {
-		c.Error(err)
+		err := c.Error(err)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 	c.JSON(http.StatusOK, gin.H{"key": key})
 }
