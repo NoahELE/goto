@@ -23,7 +23,7 @@ type UrlStore struct {
 
 const MAX_RETRY = 10
 
-func NewUrlStore() *UrlStore {
+func NewUrlStore() (*UrlStore, error) {
 	// new sqlite connection
 	db, err := gorm.Open(sqlite.Open("db.sqlite"), &gorm.Config{})
 	if err != nil {
@@ -33,14 +33,14 @@ func NewUrlStore() *UrlStore {
 	// fit db to the model
 	err = db.AutoMigrate(&KeyUrlPair{})
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	// init cache
 	cache := make(chan *KeyUrlPair)
 	store := &UrlStore{db, cache}
 	go store.saveLoop()
-	return store
+	return store, nil
 }
 
 func (s *UrlStore) Get(key string) (string, error) {

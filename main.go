@@ -7,9 +7,12 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-var store = NewUrlStore()
+var store, err = NewUrlStore()
 
 func main() {
+	if err != nil {
+		log.Fatal(err)
+	}
 	r := setupRouter()
 	if err := r.Run(":8080"); err != nil {
 		log.Fatal(err)
