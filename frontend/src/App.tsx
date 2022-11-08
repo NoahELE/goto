@@ -98,8 +98,8 @@ export default function App() {
 
 function isValidUrl(s: string) {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const _ = new URL(s)
+    // eslint-disable-next-line no-new
+    new URL(s)
   } catch (err) {
     return 'not a valid url'
   }
